@@ -10,9 +10,10 @@ Data:
 """
 
 import gpu          # Simula os recursos de uma GPU
-
+import math
 # web3d.org/documents/specifications/19775-1/V3.0/Part01/components/geometry2D.html#Polypoint2D
 def polypoint2D(point, colors):
+    print(point)
     """Função usada para renderizar Polypoint2D."""
     # Nessa função você receberá pontos no parâmetro point, esses pontos são uma lista
     # de pontos x, y sempre na ordem. Assim point[0] é o valor da coordenada x do
@@ -26,8 +27,17 @@ def polypoint2D(point, colors):
     print("Polypoint2D : pontos = {0}".format(point)) # imprime no terminal pontos
     print("Polypoint2D : colors = {0}".format(colors)) # imprime no terminal as cores
     # Exemplo:
-    gpu.GPU.set_pixel(3, 1, 255, 0, 0) # altera um pixel da imagem (u, v, r, g, b)
+    # gpu.GPU.set_pixel(3, 1, 255, 0, 0) # altera um pixel da imagem (u, v, r, g, b)
     # cuidado com as cores, o X3D especifica de (0,1) e o Framebuffer de (0,255)
+
+    for p in range(0, len(point)-1, 2):
+        x=int(point[p])
+        y=int(point[p+1])
+        r=int(colors['emissiveColor'][0]*255)
+        g=int(colors['emissiveColor'][1]*255)
+        b=int(colors['emissiveColor'][2]*255)
+
+        gpu.GPU.set_pixel(x, y, r, g, b)
 
 # web3d.org/documents/specifications/19775-1/V3.0/Part01/components/geometry2D.html#Polyline2D
 def polyline2D(lineSegments, colors):
@@ -45,9 +55,63 @@ def polyline2D(lineSegments, colors):
     print("Polyline2D : lineSegments = {0}".format(lineSegments)) # imprime no terminal
     print("Polyline2D : colors = {0}".format(colors)) # imprime no terminal as cores
     # Exemplo:
-    pos_x = gpu.GPU.width//2
-    pos_y = gpu.GPU.height//2
-    gpu.GPU.set_pixel(pos_x, pos_y, 255, 0, 0) # altera um pixel da imagem (u, v, r, g, b)
+    # pos_x = gpu.GPU.width//2
+    # pos_y = gpu.GPU.height//2
+    # gpu.GPU.set_pixel(pos_x, pos_y, 255, 0, 0) # altera um pixel da imagem (u, v, r, g, b)
+
+    print(len(lineSegments))
+    for p in range(0, len(lineSegments)-1, 4):
+        
+        r=int(colors['emissiveColor'][0]*255)
+        g=int(colors['emissiveColor'][1]*255)
+        b=int(colors['emissiveColor'][2]*255)
+
+        if lineSegments[p] > lineSegments[p+2]:
+            bx = lineSegments[p]
+            by = lineSegments[p+1]
+            ax = lineSegments[p+2]
+            ay = lineSegments[p+3]
+        else:
+            ax = lineSegments[p]
+            ay = lineSegments[p+1]
+            bx = lineSegments[p+2]
+            by = lineSegments[p+3]
+        
+        dy = (by-ay)
+        dx = (bx-ax)
+
+        if abs(dy) <= abs(dx):
+            s = dy / dx
+            
+            v = ay
+            step = 1
+            if ax > bx: step= -1
+
+            for u in range(int(math.floor(ax)), int(math.floor(bx)), step):
+                gpu.GPU.set_pixel(math.floor(u), math.floor(v), r, g, b) # altera um pixel da imagem (u, v, r, g, b)
+                v +=s
+        else:
+            s = dx / abs(dy)
+            # print(f'{s}, {dx}, {dy}')
+            u = ax
+            step = 1
+            if ay > by: step= -1
+
+            for v in range(int(math.floor(ay)), int(math.floor(by)), step):
+                gpu.GPU.set_pixel(math.floor(u), math.floor(v), r, g, b) # altera um pixel da imagem (u, v, r, g, b)
+                u +=s
+
+def inside(tri, x, y):
+    # print(f'X:{x}, Y:{y}, TRI:{tri}')
+    x+=0.5
+    y+=0.5
+    L1 = (tri[3]-tri[1])*x - (tri[2]-tri[0])*y + tri[1]*(tri[2]-tri[0]) - tri[0]*(tri[3]-tri[1])
+    L2 = (tri[5]-tri[3])*x - (tri[4]-tri[2])*y + tri[3]*(tri[4]-tri[2]) - tri[2]*(tri[5]-tri[3])
+    L3 = (tri[1]-tri[5])*x - (tri[0]-tri[4])*y + tri[5]*(tri[0]-tri[4]) - tri[4]*(tri[1]-tri[5])
+
+    print(L1, L2, L3)
+
+    return L1 >= 0 and L2 >= 0 and L3 >= 0 
 
 # web3d.org/documents/specifications/19775-1/V3.0/Part01/components/geometry2D.html#TriangleSet2D
 def triangleSet2D(vertices, colors):
@@ -62,7 +126,23 @@ def triangleSet2D(vertices, colors):
     print("TriangleSet2D : vertices = {0}".format(vertices)) # imprime no terminal
     print("TriangleSet2D : colors = {0}".format(colors)) # imprime no terminal as cores
     # Exemplo:
-    gpu.GPU.set_pixel(24, 8, 255, 255, 0) # altera um pixel da imagem (u, v, r, g, b)
+    # gpu.GPU.set_pixel(24, 8, 255, 255, 0) # altera um pixel da imagem (u, v, r, g, b)
+
+    for p in range(0, len(vertices)-1, 6):
+        r=int(colors['emissiveColor'][0]*255)
+        g=int(colors['emissiveColor'][1]*255)
+        b=int(colors['emissiveColor'][2]*255)
+
+        tri = []
+        for i in range(6):
+            tri.append(vertices[p+i])
+
+        for x in range(gpu.GPU.width):
+            for y in range(gpu.GPU.height):
+                if inside(tri, x ,y):
+                    gpu.GPU.set_pixel(x, y, r, g, b)
+
+
 
 def triangleSet(point, colors):
     """Função usada para renderizar TriangleSet."""
